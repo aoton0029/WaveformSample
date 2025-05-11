@@ -6,7 +6,16 @@ using System.Threading.Tasks;
 
 namespace WaveformSample.Waveforms
 {
-    internal interface IWaveformSequence
+    public interface IWaveformSequence
     {
+        SequenceType SequenceType { get; }
+        
+        int Number { get; }
+
+        string Name { get; set; }
+
+        int SampleRate { get; set; }
+
+        List<WaveformStep> WaveformSteps { get; set; }
     }
 }

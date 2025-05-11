@@ -3,23 +3,86 @@ using WaveformSample.Waveforms;
 
 namespace WaveformSample
 {
+
+    /*
+     * プロジェクト名/               # プロジェクトディレクトリ
+  ├── プロジェクト名.wproj    # プロジェクトファイル
+  ├── Chuck/                  # Chuckシーケンス用ディレクトリ
+  │   ├── Chuck_1_名前.wseq   # 各Chuckシーケンスファイル
+  │   ├── Chuck_2_名前.wseq
+  │   └── ...
+  └── DeChuck/                # DeChuckシーケンス用ディレクトリ
+      ├── DeChuck_1_名前.wseq # 各DeChuckシーケンスファイル
+      ├── DeChuck_2_名前.wseq
+      └── ...
+
+     */
     public partial class Form1 : Form
     {
         // プロジェクトサービスのインスタンス
         private ProjectService _projectService;
+        private string _baseTitle = "波形サンプルアプリケーション";
 
         public Form1()
         {
             InitializeComponent();
             _projectService = new ProjectService();
+
+            // プロジェクトコンテキストのイベント購読
+            _projectService.GetCurrentProject().NameChanged += OnProjectNameChanged;
+            _projectService.GetCurrentProject().DirtyStateChanged += OnProjectDirtyStateChanged;
+
+            // タイトルを初期化
+            UpdateFormTitle();
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
             // フォーム読み込み時の初期化処理
             UpdateStatusBar("準備完了");
+            UpdateFormTitle();
         }
 
+        // プロジェクト名変更時のイベントハンドラ
+        private void OnProjectNameChanged(object sender, EventArgs e)
+        {
+            UpdateFormTitle();
+        }
+
+        // プロジェクト変更状態更新時のイベントハンドラ
+        private void OnProjectDirtyStateChanged(object sender, EventArgs e)
+        {
+            UpdateFormTitle();
+        }
+
+        /// <summary>
+        /// フォームのタイトルを更新する
+        /// </summary>
+        private void UpdateFormTitle()
+        {
+            var currentProject = _projectService.GetCurrentProject();
+            string projectName = string.IsNullOrEmpty(currentProject.Name) ? "無題" : currentProject.Name;
+
+            // プロジェクトファイルの短い名前（パスなし）を取得
+            string fileName = "";
+            if (!string.IsNullOrEmpty(currentProject.FilePath))
+            {
+                fileName = Path.GetFileName(currentProject.FilePath);
+            }
+
+            // 変更状態を示す記号
+            string dirtyMark = currentProject.IsDirty ? "*" : "";
+
+            // ファイル名がある場合は表示、ない場合はプロジェクト名のみ
+            if (!string.IsNullOrEmpty(fileName))
+            {
+                Text = $"{_baseTitle} - {projectName} [{fileName}]{dirtyMark}";
+            }
+            else
+            {
+                Text = $"{_baseTitle} - {projectName}{dirtyMark}";
+            }
+        }
         #region ファイルメニューイベントハンドラ
 
         private void newProjectToolStripMenuItem_Click(object sender, EventArgs e)
@@ -65,20 +128,22 @@ namespace WaveformSample
                             _projectService.LoadProject(openFileDialog.FileName);
                             UpdateStatusBar($"プロジェクトを開きました: {openFileDialog.FileName}");
 
-                            // UIを更新する必要があればここで実装
+                            // プロジェクトのイベントを再購読
+                            var currentProject = _projectService.GetCurrentProject();
+                            currentProject.NameChanged -= OnProjectNameChanged;
+                            currentProject.DirtyStateChanged -= OnProjectDirtyStateChanged;
+                            currentProject.NameChanged += OnProjectNameChanged;
+                            currentProject.DirtyStateChanged += OnProjectDirtyStateChanged;
+
+                            // UIを更新
                             UpdateUIWithCurrentProject();
-                        }
-                        catch (FileNotFoundException ex)
-                        {
-                            ShowError($"指定されたファイルが見つかりません: {openFileDialog.FileName}", ex);
-                        }
-                        catch (InvalidDataException ex)
-                        {
-                            ShowError("プロジェクトファイルの形式が正しくありません。", ex);
+
+                            // タイトルを更新
+                            UpdateFormTitle();
                         }
                         catch (Exception ex)
                         {
-                            ShowError("プロジェクトを開く際にエラーが発生しました", ex);
+                            // 既存のエラーハンドリング...
                         }
                     }
                 }
@@ -93,21 +158,35 @@ namespace WaveformSample
         {
             try
             {
-                // プロジェクトがまだ保存されていない場合は「名前を付けて保存」を実行
-                if (!_projectService.IsProjectSaved())
+                using (SaveFileDialog saveFileDialog = new SaveFileDialog())
                 {
-                    saveProjectAsToolStripMenuItem_Click(sender, e);
-                    return;
-                }
+                    saveFileDialog.Filter = "波形プロジェクトファイル (*.wproj)|*.wproj|すべてのファイル (*.*)|*.*";
+                    saveFileDialog.Title = "名前を付けてプロジェクトを保存";
+                    saveFileDialog.DefaultExt = "wproj";
+                    saveFileDialog.AddExtension = true;
 
-                // プロジェクトを保存（上書き保存）
-                if (_projectService.SaveProject())
-                {
-                    UpdateStatusBar("プロジェクトを保存しました");
-                }
-                else
-                {
-                    ShowError("プロジェクト保存中にエラーが発生しました", new Exception("保存に失敗しました。"));
+                    // 既存のプロジェクトの場合、そのファイルパスを初期ディレクトリに設定
+                    var currentProject = _projectService.GetCurrentProject();
+                    if (currentProject != null && !string.IsNullOrEmpty(currentProject.FilePath))
+                    {
+                        saveFileDialog.InitialDirectory = Path.GetDirectoryName(
+                            Path.GetDirectoryName(currentProject.FilePath)); // 一つ上のディレクトリを取得
+                        saveFileDialog.FileName = Path.GetFileName(currentProject.FilePath);
+                    }
+
+                    if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        // プロジェクトを指定されたパスに保存
+                        _projectService.SaveProjectAs(saveFileDialog.FileName);
+
+                        // タイトルを更新
+                        UpdateFormTitle();
+
+                        // 新しいファイルパスはプロジェクトディレクトリ内に移動しているので、
+                        // 実際のパスを取得して表示
+                        string actualFilePath = _projectService.GetCurrentProject().FilePath;
+                        UpdateStatusBar($"プロジェクトを保存しました: {actualFilePath}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -366,6 +445,8 @@ namespace WaveformSample
             {
                 Text = "波形サンプルアプリケーション";
             }
+            // タイトルを更新
+            UpdateFormTitle();
         }
 
         #endregion

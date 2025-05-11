@@ -22,6 +22,10 @@ namespace WaveformSample.Core
         /// </summary>
         private const int MaxSequenceCount = 10;
 
+        // プロジェクト関連のイベント定義
+        public event EventHandler ProjectNameChanged;
+        public event EventHandler ProjectDirtyStateChanged;
+
         /// <summary>
         /// コンストラクタ
         /// </summary>
@@ -38,10 +42,24 @@ namespace WaveformSample.Core
         {
             try
             {
+                // 既存のプロジェクトからイベント登録を解除
+                if (CurrentProject != null)
+                {
+                    CurrentProject.NameChanged -= OnProjectNameChanged;
+                    CurrentProject.DirtyStateChanged -= OnProjectDirtyStateChanged;
+                }
+
                 CurrentProject = new Project();
+
+                // 新しいプロジェクトのイベントを購読
+                CurrentProject.NameChanged += OnProjectNameChanged;
+                CurrentProject.DirtyStateChanged += OnProjectDirtyStateChanged;
 
                 // デフォルトの波形シーケンスを初期化
                 InitializeDefaultSequences();
+
+                // シーケンスの変更監視を開始
+                CurrentProject.MonitorWaveformStepChanges();
             }
             catch (Exception ex)
             {
@@ -97,40 +115,37 @@ namespace WaveformSample.Core
 
             try
             {
-                // プロジェクトのディレクトリを取得
-                string projectDirectory = Path.GetDirectoryName(filePath);
+                // プロジェクト名とディレクトリパスを取得
                 string projectFileName = Path.GetFileNameWithoutExtension(filePath);
+                string projectDirPath = Path.GetDirectoryName(filePath);
 
-                // ディレクトリが存在しない場合は作成
-                if (!string.IsNullOrEmpty(projectDirectory) && !Directory.Exists(projectDirectory))
+                // プロジェクトディレクトリを作成 (プロジェクト名のディレクトリ)
+                string projectDirectory = Path.Combine(projectDirPath, projectFileName);
+                if (!Directory.Exists(projectDirectory))
                 {
                     Directory.CreateDirectory(projectDirectory);
                 }
 
-                // プロジェクトのルートディレクトリ
-                string projectRootDir = Path.Combine(projectDirectory, projectFileName + "_data");
-                if (!Directory.Exists(projectRootDir))
-                {
-                    Directory.CreateDirectory(projectRootDir);
-                }
+                // プロジェクトファイルを新しいパスに設定（プロジェクトディレクトリ内のwprojファイル）
+                string newFilePath = Path.Combine(projectDirectory, Path.GetFileName(filePath));
 
                 // Chuckシーケンス用のディレクトリ
-                string chuckSequencesDir = Path.Combine(projectRootDir, "Chuck");
+                string chuckSequencesDir = Path.Combine(projectDirectory, "Chuck");
                 if (!Directory.Exists(chuckSequencesDir))
                 {
                     Directory.CreateDirectory(chuckSequencesDir);
                 }
 
                 // DeChuckシーケンス用のディレクトリ
-                string deChuckSequencesDir = Path.Combine(projectRootDir, "DeChuck");
+                string deChuckSequencesDir = Path.Combine(projectDirectory, "DeChuck");
                 if (!Directory.Exists(deChuckSequencesDir))
                 {
                     Directory.CreateDirectory(deChuckSequencesDir);
                 }
 
                 // シーケンスのパス情報を保持するリスト
-                List<SequenceFileInfo> chuckSequenceFiles = new List<SequenceFileInfo>();
-                List<SequenceFileInfo> deChuckSequenceFiles = new List<SequenceFileInfo>();
+                List<FileInfoSequence> chuckSequenceFiles = new List<FileInfoSequence>();
+                List<FileInfoSequence> deChuckSequenceFiles = new List<FileInfoSequence>();
 
                 // Chuck波形シーケンスを個別ファイルに保存
                 foreach (var sequence in CurrentProject.ChuckWaveformSequences)
@@ -142,7 +157,7 @@ namespace WaveformSample.Core
                     SaveSequenceToFile(sequence, sequenceFilePath);
 
                     // シーケンス情報をリストに追加
-                    chuckSequenceFiles.Add(new SequenceFileInfo
+                    chuckSequenceFiles.Add(new FileInfoSequence
                     {
                         Number = sequence.Number,
                         Name = sequence.Name,
@@ -161,7 +176,7 @@ namespace WaveformSample.Core
                     SaveSequenceToFile(sequence, sequenceFilePath);
 
                     // シーケンス情報をリストに追加
-                    deChuckSequenceFiles.Add(new SequenceFileInfo
+                    deChuckSequenceFiles.Add(new FileInfoSequence
                     {
                         Number = sequence.Number,
                         Name = sequence.Name,
@@ -171,7 +186,7 @@ namespace WaveformSample.Core
                 }
 
                 // プロジェクト情報のみを含む一時オブジェクトを作成
-                var projectInfo = new ProjectFileInfo
+                var projectInfo = new FileInfoProject
                 {
                     Name = CurrentProject.Name,
                     Description = CurrentProject.Description,
@@ -190,11 +205,11 @@ namespace WaveformSample.Core
                 };
                 string json = JsonSerializer.Serialize(projectInfo, options);
 
-                // プロジェクトファイルに書き込み
-                File.WriteAllText(filePath, json);
+                // プロジェクトファイルに書き込み（ディレクトリ内のファイル）
+                File.WriteAllText(newFilePath, json);
 
                 // プロジェクトの状態を更新
-                CurrentProject.FilePath = filePath;
+                CurrentProject.FilePath = newFilePath; // 新しいパスに更新
                 CurrentProject.UpdatedAt = DateTime.Now;
                 CurrentProject.IsDirty = false;
             }
@@ -306,7 +321,7 @@ namespace WaveformSample.Core
                     PropertyNameCaseInsensitive = true
                 };
 
-                var projectInfo = JsonSerializer.Deserialize<ProjectFileInfo>(json, options);
+                var projectInfo = JsonSerializer.Deserialize<FileInfoProject>(json, options);
                 if (projectInfo == null)
                 {
                     throw new InvalidDataException("プロジェクトファイルの形式が不正です。");
@@ -326,51 +341,63 @@ namespace WaveformSample.Core
 
                 // プロジェクトのディレクトリとシーケンスディレクトリのパスを取得
                 string projectDirectory = Path.GetDirectoryName(filePath);
-                string projectFileName = Path.GetFileNameWithoutExtension(filePath);
-                string projectRootDir = Path.Combine(projectDirectory, projectFileName + "_data");
-
-                // プロジェクトルートディレクトリが存在しない場合はエラー
-                if (!Directory.Exists(projectRootDir))
-                {
-                    throw new DirectoryNotFoundException($"プロジェクトデータディレクトリが見つかりません: {projectRootDir}");
-                }
 
                 // Chuck波形シーケンスを読み込む
                 project.ChuckWaveformSequences.Clear();
-                foreach (var sequenceInfo in projectInfo.ChuckSequences)
+                if (projectInfo.ChuckSequences != null)
                 {
-                    string sequenceFilePath = Path.Combine(projectRootDir, sequenceInfo.FilePath);
-                    if (File.Exists(sequenceFilePath))
+                    foreach (var sequenceInfo in projectInfo.ChuckSequences)
                     {
-                        var sequence = LoadSequenceFromFile<ChuckWaveformSequence>(sequenceFilePath);
-                        project.ChuckWaveformSequences.Add(sequence);
-                    }
-                    else
-                    {
-                        // ファイルが見つからない場合は警告ログを出力するか、デフォルトのシーケンスを作成
-                        Console.WriteLine($"警告: シーケンスファイルが見つかりません: {sequenceFilePath}");
+                        string sequenceFilePath = Path.Combine(projectDirectory, sequenceInfo.FilePath);
+                        if (File.Exists(sequenceFilePath))
+                        {
+                            var sequence = LoadSequenceFromFile<ChuckWaveformSequence>(sequenceFilePath);
+                            project.ChuckWaveformSequences.Add(sequence);
+                        }
+                        else
+                        {
+                            // ファイルが見つからない場合は警告ログを出力
+                            Console.WriteLine($"警告: シーケンスファイルが見つかりません: {sequenceFilePath}");
+                        }
                     }
                 }
 
                 // DeChuck波形シーケンスを読み込む
                 project.DeChuckWaveformSequences.Clear();
-                foreach (var sequenceInfo in projectInfo.DeChuckSequences)
+                if (projectInfo.DeChuckSequences != null)
                 {
-                    string sequenceFilePath = Path.Combine(projectRootDir, sequenceInfo.FilePath);
-                    if (File.Exists(sequenceFilePath))
+                    foreach (var sequenceInfo in projectInfo.DeChuckSequences)
                     {
-                        var sequence = LoadSequenceFromFile<DeChuckWaveformSequence>(sequenceFilePath);
-                        project.DeChuckWaveformSequences.Add(sequence);
+                        string sequenceFilePath = Path.Combine(projectDirectory, sequenceInfo.FilePath);
+                        if (File.Exists(sequenceFilePath))
+                        {
+                            var sequence = LoadSequenceFromFile<DeChuckWaveformSequence>(sequenceFilePath);
+                            project.DeChuckWaveformSequences.Add(sequence);
+                        }
+                        else
+                        {
+                            // ファイルが見つからない場合は警告ログを出力
+                            Console.WriteLine($"警告: シーケンスファイルが見つかりません: {sequenceFilePath}");
+                        }
                     }
-                    else
-                    {
-                        // ファイルが見つからない場合は警告ログを出力するか、デフォルトのシーケンスを作成
-                        Console.WriteLine($"警告: シーケンスファイルが見つかりません: {sequenceFilePath}");
-                    }
+                }
+
+                // 既存のプロジェクトからイベント登録を解除
+                if (CurrentProject != null)
+                {
+                    CurrentProject.NameChanged -= OnProjectNameChanged;
+                    CurrentProject.DirtyStateChanged -= OnProjectDirtyStateChanged;
                 }
 
                 // 現在のプロジェクトを設定
                 CurrentProject = project;
+
+                // プロジェクトのイベントを購読
+                CurrentProject.NameChanged += OnProjectNameChanged;
+                CurrentProject.DirtyStateChanged += OnProjectDirtyStateChanged;
+
+                // シーケンスの変更監視を開始
+                CurrentProject.MonitorWaveformStepChanges();
             }
             catch (JsonException ex)
             {
@@ -384,6 +411,17 @@ namespace WaveformSample.Core
             {
                 throw new InvalidOperationException($"プロジェクトの読み込み中に予期しないエラーが発生しました: {filePath}", ex);
             }
+        }
+
+        // イベントハンドラ
+        private void OnProjectNameChanged(object sender, EventArgs e)
+        {
+            ProjectNameChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnProjectDirtyStateChanged(object sender, EventArgs e)
+        {
+            ProjectDirtyStateChanged?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>

@@ -3,14 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WaveformSample.Waveforms;
 
 namespace WaveformSample.Models
 {
-    /// <summary>
-    /// プロジェクトファイルの情報
-    /// </summary>
-    public class ProjectFileInfo
+    public class FileInfoProject
     {
         /// <summary>
         /// プロジェクト名
@@ -40,37 +36,11 @@ namespace WaveformSample.Models
         /// <summary>
         /// Chuck波形シーケンスの情報リスト
         /// </summary>
-        public List<SequenceFileInfo> ChuckSequences { get; set; } = new List<SequenceFileInfo>();
+        public List<FileInfoSequence> ChuckSequences { get; set; } = new List<FileInfoSequence>();
 
         /// <summary>
         /// DeChuck波形シーケンスの情報リスト
         /// </summary>
-        public List<SequenceFileInfo> DeChuckSequences { get; set; } = new List<SequenceFileInfo>();
-    }
-
-    /// <summary>
-    /// シーケンスファイルの情報
-    /// </summary>
-    public class SequenceFileInfo
-    {
-        /// <summary>
-        /// シーケンス番号
-        /// </summary>
-        public int Number { get; set; }
-
-        /// <summary>
-        /// シーケンス名
-        /// </summary>
-        public string Name { get; set; }
-
-        /// <summary>
-        /// ファイルパス（相対パス）
-        /// </summary>
-        public string FilePath { get; set; }
-
-        /// <summary>
-        /// シーケンスタイプ
-        /// </summary>
-        public SequenceType SequenceType { get; set; }
+        public List<FileInfoSequence> DeChuckSequences { get; set; } = new List<FileInfoSequence>();
     }
 }

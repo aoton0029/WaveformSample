@@ -59,18 +59,33 @@ namespace WaveformSample
 
                     if (openFileDialog.ShowDialog() == DialogResult.OK)
                     {
-                        // プロジェクトを読み込む
-                        _projectService.LoadProject(openFileDialog.FileName);
-                        UpdateStatusBar($"プロジェクトを開きました: {openFileDialog.FileName}");
+                        try
+                        {
+                            // プロジェクトを読み込む
+                            _projectService.LoadProject(openFileDialog.FileName);
+                            UpdateStatusBar($"プロジェクトを開きました: {openFileDialog.FileName}");
 
-                        // UIを更新する必要があればここで実装
-                        UpdateUIWithCurrentProject();
+                            // UIを更新する必要があればここで実装
+                            UpdateUIWithCurrentProject();
+                        }
+                        catch (FileNotFoundException ex)
+                        {
+                            ShowError($"指定されたファイルが見つかりません: {openFileDialog.FileName}", ex);
+                        }
+                        catch (InvalidDataException ex)
+                        {
+                            ShowError("プロジェクトファイルの形式が正しくありません。", ex);
+                        }
+                        catch (Exception ex)
+                        {
+                            ShowError("プロジェクトを開く際にエラーが発生しました", ex);
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                ShowError("プロジェクトを開く際にエラーが発生しました", ex);
+                ShowError("プロジェクトを開く処理中にエラーが発生しました", ex);
             }
         }
 
@@ -354,5 +369,158 @@ namespace WaveformSample
         }
 
         #endregion
+
+        /// <summary>
+        /// 選択された波形シーケンスをエクスポートする
+        /// </summary>
+        /// <param name="sequence">エクスポートするシーケンス</param>
+        private void ExportSequence(IWaveformSequence sequence)
+        {
+            if (sequence == null)
+            {
+                ShowError("エクスポートエラー", new InvalidOperationException("エクスポートするシーケンスが選択されていません。"));
+                return;
+            }
+
+            try
+            {
+                using (SaveFileDialog saveFileDialog = new SaveFileDialog())
+                {
+                    string defaultFileName = $"{sequence.SequenceType}_{sequence.Number}_{sequence.Name}.wseq";
+
+                    saveFileDialog.FileName = defaultFileName;
+                    saveFileDialog.Filter = "波形シーケンスファイル (*.wseq)|*.wseq|すべてのファイル (*.*)|*.*";
+                    saveFileDialog.Title = "波形シーケンスをエクスポート";
+                    saveFileDialog.DefaultExt = "wseq";
+                    saveFileDialog.AddExtension = true;
+
+                    if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        _projectService.SaveSequenceAs(sequence, saveFileDialog.FileName);
+                        UpdateStatusBar($"波形シーケンスをエクスポートしました: {saveFileDialog.FileName}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError("波形シーケンスのエクスポート中にエラーが発生しました", ex);
+            }
+        }
+
+        /// <summary>
+        /// 波形シーケンスをインポートする
+        /// </summary>
+        private void ImportSequence()
+        {
+            try
+            {
+                using (OpenFileDialog openFileDialog = new OpenFileDialog())
+                {
+                    openFileDialog.Filter = "波形シーケンスファイル (*.wseq)|*.wseq|すべてのファイル (*.*)|*.*";
+                    openFileDialog.Title = "波形シーケンスのインポート";
+
+                    if (openFileDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        // シーケンスを読み込む
+                        IWaveformSequence sequence = _projectService.ImportSequence(openFileDialog.FileName);
+
+                        // シーケンスの番号を設定
+                        var currentProject = _projectService.GetCurrentProject();
+                        int newNumber;
+
+                        if (sequence.SequenceType == SequenceType.Chuck)
+                        {
+                            newNumber = currentProject.ChuckWaveformSequences.Count > 0
+                                ? currentProject.ChuckWaveformSequences.Max(s => s.Number) + 1
+                                : 1;
+
+                            // シーケンスが既にChuckWaveformSequenceであることを確認
+                            ChuckWaveformSequence chuckSequence = sequence as ChuckWaveformSequence;
+                            if (chuckSequence == null)
+                            {
+                                // キャストできない場合は新しいインスタンスを作成
+                                chuckSequence = new ChuckWaveformSequence(
+                                    SequenceType.Chuck,
+                                    newNumber,
+                                    sequence.Name);
+
+                                // プロパティをコピー
+                                chuckSequence.SampleRate = sequence.SampleRate;
+                                chuckSequence.WaveformSteps = sequence.WaveformSteps;
+                            }
+                            else
+                            {
+                                // 既存のシーケンスの番号を更新
+                                // 注: Number が読み取り専用の場合は、新しいインスタンスを作成する必要があります
+                                chuckSequence = new ChuckWaveformSequence(
+                                    SequenceType.Chuck,
+                                    newNumber,
+                                    chuckSequence.Name);
+
+                                chuckSequence.SampleRate = sequence.SampleRate;
+                                chuckSequence.WaveformSteps = sequence.WaveformSteps;
+                            }
+
+                            sequence = chuckSequence;
+                        }
+                        else if (sequence.SequenceType == SequenceType.DeChuck)
+                        {
+                            newNumber = currentProject.DeChuckWaveformSequences.Count > 0
+                                ? currentProject.DeChuckWaveformSequences.Max(s => s.Number) + 1
+                                : 1;
+
+                            // シーケンスが既にDeChuckWaveformSequenceであることを確認
+                            DeChuckWaveformSequence deChuckSequence = sequence as DeChuckWaveformSequence;
+                            if (deChuckSequence == null)
+                            {
+                                // キャストできない場合は新しいインスタンスを作成
+                                deChuckSequence = new DeChuckWaveformSequence(
+                                    SequenceType.DeChuck,
+                                    newNumber,
+                                    sequence.Name);
+
+                                // プロパティをコピー
+                                deChuckSequence.SampleRate = sequence.SampleRate;
+                                deChuckSequence.WaveformSteps = sequence.WaveformSteps;
+                            }
+                            else
+                            {
+                                // 既存のシーケンスの番号を更新
+                                // 注: Number が読み取り専用の場合は、新しいインスタンスを作成する必要があります
+                                deChuckSequence = new DeChuckWaveformSequence(
+                                    SequenceType.DeChuck,
+                                    newNumber,
+                                    deChuckSequence.Name);
+
+                                deChuckSequence.SampleRate = sequence.SampleRate;
+                                deChuckSequence.WaveformSteps = sequence.WaveformSteps;
+                            }
+
+                            sequence = deChuckSequence;
+                        }
+
+                        // 現在のプロジェクトに追加
+                        bool success = _projectService.AddSequenceToProject(sequence);
+
+                        if (success)
+                        {
+                            // プロジェクトの変更フラグは AddSequenceToProject 内で設定済み
+                            UpdateStatusBar($"波形シーケンスをインポートしました: {sequence.Name}");
+
+                            // UIを更新
+                            UpdateUIWithCurrentProject();
+                        }
+                        else
+                        {
+                            ShowError("波形シーケンスのインポートに失敗しました", new Exception("シーケンスの最大数に達しているか、無効なシーケンスです。"));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError("波形シーケンスのインポート中にエラーが発生しました", ex);
+            }
+        }
     }
 }

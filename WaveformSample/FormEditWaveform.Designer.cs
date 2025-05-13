@@ -47,6 +47,13 @@
             ucGrid1.TabIndex = 0;
             ucGrid1.WaveformSteps = null;
             // 
+            // ucChart1
+            // 
+            ucChart1.Location = new Point(12, 41);
+            ucChart1.Name = "ucChart1";
+            ucChart1.Size = new Size(953, 368);
+            ucChart1.TabIndex = 8;
+            // 
             // txtlblTitleWaveformSequenceName
             // 
             txtlblTitleWaveformSequenceName.Location = new Point(118, 12);

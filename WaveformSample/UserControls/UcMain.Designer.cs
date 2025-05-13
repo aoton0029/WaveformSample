@@ -32,6 +32,7 @@
             txtProjectName = new TextBox();
             rdbChuck = new RadioButton();
             rdbDeChuck = new RadioButton();
+            ucWaveformSetting1 = new UcWaveformSetting();
             SuspendLayout();
             // 
             // lblTitleProjectName
@@ -67,21 +68,27 @@
             // rdbDeChuck
             // 
             rdbDeChuck.Appearance = Appearance.Button;
-            rdbDeChuck.Checked = true;
             rdbDeChuck.Font = new Font("メイリオ", 14.25F, FontStyle.Regular, GraphicsUnit.Point, 128);
             rdbDeChuck.Location = new Point(133, 36);
             rdbDeChuck.Name = "rdbDeChuck";
             rdbDeChuck.Size = new Size(124, 53);
             rdbDeChuck.TabIndex = 3;
-            rdbDeChuck.TabStop = true;
             rdbDeChuck.Text = "DeChuck";
             rdbDeChuck.TextAlign = ContentAlignment.MiddleCenter;
             rdbDeChuck.UseVisualStyleBackColor = true;
+            // 
+            // ucWaveformSetting1
+            // 
+            ucWaveformSetting1.Location = new Point(3, 95);
+            ucWaveformSetting1.Name = "ucWaveformSetting1";
+            ucWaveformSetting1.Size = new Size(978, 533);
+            ucWaveformSetting1.TabIndex = 4;
             // 
             // UcMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
+            Controls.Add(ucWaveformSetting1);
             Controls.Add(rdbDeChuck);
             Controls.Add(rdbChuck);
             Controls.Add(txtProjectName);
@@ -98,5 +105,6 @@
         private TextBox txtProjectName;
         private RadioButton rdbChuck;
         private RadioButton rdbDeChuck;
+        private UcWaveformSetting ucWaveformSetting1;
     }
 }

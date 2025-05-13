@@ -29,9 +29,9 @@
         private void InitializeComponent()
         {
             dataGridView1 = new DataGridView();
-            ucChart1 = new UcChart();
             ColumnWaveformSequenceName = new DataGridViewTextBoxColumn();
             ColumnEdit = new DataGridViewButtonColumn();
+            ucChart1 = new UcChart();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
             SuspendLayout();
             // 
@@ -40,26 +40,14 @@
             dataGridView1.AllowUserToAddRows = false;
             dataGridView1.AllowUserToDeleteRows = false;
             dataGridView1.AllowUserToResizeRows = false;
+            dataGridView1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
             dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dataGridView1.Columns.AddRange(new DataGridViewColumn[] { ColumnWaveformSequenceName, ColumnEdit });
             dataGridView1.Location = new Point(3, 3);
             dataGridView1.Name = "dataGridView1";
             dataGridView1.ReadOnly = true;
-            dataGridView1.Size = new Size(262, 489);
+            dataGridView1.Size = new Size(262, 599);
             dataGridView1.TabIndex = 0;
-            // 
-            // ucChart1
-            // 
-            ucChart1.ChartTitle = null;
-            ucChart1.Location = new Point(271, 3);
-            ucChart1.Name = "ucChart1";
-            ucChart1.Renderer = null;
-            ucChart1.Sequence = null;
-            ucChart1.ShowGridLines = true;
-            ucChart1.Size = new Size(666, 599);
-            ucChart1.TabIndex = 1;
-            ucChart1.XAxisLabel = null;
-            ucChart1.YAxisLabel = null;
             // 
             // ColumnWaveformSequenceName
             // 
@@ -76,6 +64,14 @@
             ColumnEdit.Text = "Edit";
             ColumnEdit.UseColumnTextForButtonValue = true;
             // 
+            // ucChart1
+            // 
+            ucChart1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            ucChart1.Location = new Point(271, 3);
+            ucChart1.Name = "ucChart1";
+            ucChart1.Size = new Size(666, 599);
+            ucChart1.TabIndex = 1;
+            // 
             // UcWaveformSetting
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -91,8 +87,8 @@
         #endregion
 
         private DataGridView dataGridView1;
-        private UcChart ucChart1;
         private DataGridViewTextBoxColumn ColumnWaveformSequenceName;
         private DataGridViewButtonColumn ColumnEdit;
+        private UcChart ucChart1;
     }
 }

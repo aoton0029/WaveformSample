@@ -47,19 +47,6 @@
             ucGrid1.TabIndex = 0;
             ucGrid1.WaveformSteps = null;
             // 
-            // ucChart1
-            // 
-            ucChart1.ChartTitle = null;
-            ucChart1.Location = new Point(12, 41);
-            ucChart1.Name = "ucChart1";
-            ucChart1.Renderer = null;
-            ucChart1.Sequence = null;
-            ucChart1.ShowGridLines = true;
-            ucChart1.Size = new Size(953, 368);
-            ucChart1.TabIndex = 1;
-            ucChart1.XAxisLabel = null;
-            ucChart1.YAxisLabel = null;
-            // 
             // txtlblTitleWaveformSequenceName
             // 
             txtlblTitleWaveformSequenceName.Location = new Point(118, 12);

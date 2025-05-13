@@ -13,15 +13,40 @@ namespace WaveformSample.Waveforms
 
         public int Number { get; }
 
-        public string Name { get; set; }
+        private string _name;
+        public string Name
+        {
+            get => _name;
+            set
+            {
+                if (_name != value)
+                {
+                    _name = value;
+                    NameChanged?.Invoke(this, EventArgs.Empty);
+                }
+            }
+        }
 
-        public List<WaveformStep> WaveformSteps { get; set; }
+        private List<WaveformStep> _waveformSteps;
+        public List<WaveformStep> WaveformSteps
+        {
+            get => _waveformSteps;
+            set
+            {
+                _waveformSteps = value;
+                WaveformStepsChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
 
         public int SampleRate { get; set; }
 
         public int MaxTime => SampleRate * 1000;
 
-        public DeChuckChartRenderer ChartRenderer { get; set; }
+        public ChuckChartRenderer ChartRenderer { get; set; }
+
+        // イベント定義
+        public event EventHandler NameChanged;
+        public event EventHandler WaveformStepsChanged;
 
         public DeChuckWaveformSequence(SequenceType sequenceType, int number, string name)
         {

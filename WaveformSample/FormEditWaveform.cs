@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
@@ -44,9 +45,9 @@ namespace WaveformSample
             LoadWaveformSequence();
         }
 
-        /// <summary>
-        /// イベントハンドラを初期化
-        /// </summary>
+        // 修正: 'UcGrid' に 'WaveformStepChanged' イベントが存在しないため、代わりに 'WaveformSteps_CollectionChanged' を使用します。
+        // 'WaveformSteps_CollectionChanged' は 'UcGrid' クラス内で定義されているイベントです。
+
         private void InitializeEvents()
         {
             // ボタンイベントの登録
@@ -59,10 +60,18 @@ namespace WaveformSample
             nudSampleRate.ValueChanged += Control_ValueChanged;
 
             // UcGridのイベント
-            ucGrid1.WaveformStepChanged += UcGrid1_WaveformStepChanged;
+            ucGrid1.WaveformSteps.CollectionChanged += UcGrid1_WaveformSteps_CollectionChanged;
 
             // フォームのイベント
             FormClosing += FormEditWaveform_FormClosing;
+        }
+
+        /// <summary>
+        /// グリッドのWaveformSteps変更時のイベント
+        /// </summary>
+        private void UcGrid1_WaveformSteps_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            _isModified = true;
         }
 
         /// <summary>
@@ -80,13 +89,6 @@ namespace WaveformSample
             // グリッドにWaveformStepsをセット
             ucGrid1.WaveformSteps = new ObservableCollection<WaveformStep>(_waveformSequence.WaveformSteps);
 
-            // チャートの設定
-            ucChart1.Renderer = _chartRenderer;
-            ucChart1.Sequence = _waveformSequence;
-            ucChart1.ChartTitle = "波形プレビュー";
-            ucChart1.XAxisLabel = "時間 (秒)";
-            ucChart1.YAxisLabel = "振幅";
-
             _isModified = false;
         }
 
@@ -102,9 +104,6 @@ namespace WaveformSample
             _waveformSequence.SampleRate = (int)nudSampleRate.Value;
 
             // WaveformStepsは既にucGrid1を通じて更新されている
-
-            // チャートを更新
-            ucChart1.Sequence = _waveformSequence;
         }
 
         #region イベントハンドラ
@@ -127,8 +126,6 @@ namespace WaveformSample
         {
             _isModified = true;
 
-            // チャートの更新
-            ucChart1.Sequence = _waveformSequence;
         }
 
         /// <summary>
@@ -171,8 +168,6 @@ namespace WaveformSample
                         // ImportWaveformData(openFileDialog.FileName);
                         _isModified = true;
 
-                        // チャートを更新
-                        ucChart1.Sequence = _waveformSequence;
                     }
                     catch (Exception ex)
                     {

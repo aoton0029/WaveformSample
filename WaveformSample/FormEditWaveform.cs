@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
@@ -77,7 +78,7 @@ namespace WaveformSample
             nudSampleRate.Value = _waveformSequence.SampleRate;
 
             // グリッドにWaveformStepsをセット
-            ucGrid1.WaveformSteps = _waveformSequence.WaveformSteps;
+            ucGrid1.WaveformSteps = new ObservableCollection<WaveformStep>(_waveformSequence.WaveformSteps);
 
             // チャートの設定
             ucChart1.Renderer = _chartRenderer;

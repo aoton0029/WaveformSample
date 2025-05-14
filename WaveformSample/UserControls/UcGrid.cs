@@ -16,7 +16,8 @@ namespace WaveformSample.UserControls
     public partial class UcGrid : UserControl
     {
         private ObservableCollection<WaveformStep> _waveformSteps;
-
+        // UcGridクラスに追加するイベント
+        public event EventHandler WaveformStepsChanged;
         public UcGrid()
         {
             InitializeComponent();

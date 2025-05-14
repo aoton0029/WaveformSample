@@ -4,57 +4,49 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WaveformSample.Charts;
+using WaveformSample.Core;
 
 namespace WaveformSample.Waveforms
 {
-    public class ChuckWaveformSequence : IWaveformSequence
+    public class ChuckWaveformSequence : WaveformSequenceBase, IDeepCopy<ChuckWaveformSequence>
     {
-        public SequenceType SequenceType { get; }
-
-        public int Number { get; }
-
-        private string _name;
-        public string Name
+        // コンストラクタ
+        public ChuckWaveformSequence(int number, string name)
+           : base(number, name)
         {
-            get => _name;
-            set
+            SequenceType = SequenceType.Chuck;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is ChuckWaveformSequence other)
             {
-                if (_name != value)
-                {
-                    _name = value;
-                    NameChanged?.Invoke(this, EventArgs.Empty);
-                }
+                return Number == other.Number &&
+                       Name == other.Name &&
+                       SequenceType == other.SequenceType &&
+                       WaveformSteps.SequenceEqual(other.WaveformSteps);
             }
+            return false;
         }
-
-        private List<WaveformStep> _waveformSteps;
-        public List<WaveformStep> WaveformSteps
+        public override int GetHashCode()
         {
-            get => _waveformSteps;
-            set
+            int hash = 17;
+            hash = hash * 31 + Number.GetHashCode();
+            hash = hash * 31 + (Name?.GetHashCode() ?? 0);
+            hash = hash * 31 + SequenceType.GetHashCode();
+            foreach (var waveform in WaveformSteps)
             {
-                _waveformSteps = value;
-                WaveformStepsChanged?.Invoke(this, EventArgs.Empty);
+                hash = hash * 31 + waveform.GetHashCode();
             }
+            return hash;
         }
 
-        public int SampleRate { get ; set; }
-
-        public int MaxTime => SampleRate * 1000;
-
-        public ChuckChartRenderer ChartRenderer { get; set; }
-
-        // イベント定義
-        public event EventHandler NameChanged;
-        public event EventHandler WaveformStepsChanged;
-
-        public ChuckWaveformSequence(SequenceType sequenceType, int number, string name)
+        public ChuckWaveformSequence DeepCopy()
         {
-            SequenceType = sequenceType;
-            Number = number;
-            Name = name;
-            WaveformSteps = new List<WaveformStep>();
-            SampleRate = 1;
-        }
+            ChuckWaveformSequence copy = new ChuckWaveformSequence(Number, Name);
+            copy.SequenceType = SequenceType;
+            copy.WaveformSteps = new List<WaveformStep>(WaveformSteps.Select(w => w.DeepCopy()));
+            return copy;
+        }   
     }
 }

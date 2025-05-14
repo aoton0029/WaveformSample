@@ -14,7 +14,7 @@ namespace WaveformSample.Waveforms
 
         string Name { get; set; }
 
-        int SampleRate { get; set; }
+        int Pitch { get; set; }
 
         List<WaveformStep> WaveformSteps { get; set; }
     }

@@ -4,10 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WaveformSample.Core;
 
 namespace WaveformSample.Waveforms
 {
-    public class WaveformStep : ObservableObject
+    public class WaveformStep : ObservableObject, IDeepCopy<WaveformStep>
     {
         private WaveformType _waveType;
         public WaveformType WaveType
@@ -91,6 +92,25 @@ namespace WaveformSample.Waveforms
         {
             get => _phase;
             set => SetProperty(ref _phase, value);
+        }
+
+        public WaveformStep DeepCopy()
+        {
+            return new WaveformStep
+            {
+                WaveType = this.WaveType,
+                Duration = this.Duration,
+                StartFrequency = this.StartFrequency,
+                EndFrequency = this.EndFrequency,
+                IsFrequencySweep = this.IsFrequencySweep,
+                StartAmplitude = this.StartAmplitude,
+                EndAmplitude = this.EndAmplitude,
+                IsAmplitudeSweep = this.IsAmplitudeSweep,
+                StartDCOffset = this.StartDCOffset,
+                EndDCOffset = this.EndDCOffset,
+                IsDCOffsetSweep = this.IsDCOffsetSweep,
+                Phase = this.Phase
+            };
         }
     }
 }

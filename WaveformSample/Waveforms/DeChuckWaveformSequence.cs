@@ -4,57 +4,49 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WaveformSample.Charts;
+using WaveformSample.Core;
 
 namespace WaveformSample.Waveforms
 {
-    public class DeChuckWaveformSequence : IWaveformSequence
+    public class DeChuckWaveformSequence : WaveformSequenceBase, IDeepCopy<DeChuckWaveformSequence>
     {
-        public SequenceType SequenceType { get; }
-
-        public int Number { get; }
-
-        private string _name;
-        public string Name
+        public DeChuckWaveformSequence(int number, string name)
+           : base(number, name)
         {
-            get => _name;
-            set
-            {
-                if (_name != value)
-                {
-                    _name = value;
-                    NameChanged?.Invoke(this, EventArgs.Empty);
-                }
-            }
+            SequenceType = SequenceType.Chuck;
         }
 
-        private List<WaveformStep> _waveformSteps;
-        public List<WaveformStep> WaveformSteps
+        public override bool Equals(object? obj)
         {
-            get => _waveformSteps;
-            set
+            if (obj is DeChuckWaveformSequence other)
             {
-                _waveformSteps = value;
-                WaveformStepsChanged?.Invoke(this, EventArgs.Empty);
+                return Number == other.Number &&
+                       Name == other.Name &&
+                       SequenceType == other.SequenceType &&
+                       WaveformSteps.SequenceEqual(other.WaveformSteps);
             }
+            return false;
         }
 
-        public int SampleRate { get; set; }
-
-        public int MaxTime => SampleRate * 1000;
-
-        public ChuckChartRenderer ChartRenderer { get; set; }
-
-        // イベント定義
-        public event EventHandler NameChanged;
-        public event EventHandler WaveformStepsChanged;
-
-        public DeChuckWaveformSequence(SequenceType sequenceType, int number, string name)
+        public override int GetHashCode()
         {
-            SequenceType = sequenceType;
-            Number = number;
-            Name = name;
-            WaveformSteps = new List<WaveformStep>();
-            SampleRate = 1;
+            int hash = 17;
+            hash = hash * 31 + Number.GetHashCode();
+            hash = hash * 31 + (Name?.GetHashCode() ?? 0);
+            hash = hash * 31 + SequenceType.GetHashCode();
+            foreach (var waveform in WaveformSteps)
+            {
+                hash = hash * 31 + waveform.GetHashCode();
+            }
+            return hash;
+        }
+
+        public DeChuckWaveformSequence DeepCopy()
+        {
+            DeChuckWaveformSequence copy = new DeChuckWaveformSequence(Number, Name);
+            copy.SequenceType = SequenceType;
+            copy.WaveformSteps = new List<WaveformStep>(WaveformSteps.Select(w => w.DeepCopy()));
+            return copy;
         }
     }
 }

@@ -43,5 +43,49 @@ namespace WaveformSample.Waveforms
             return waveformData;
         }
 
+        /// <summary>
+        /// 時間変化する三角波を生成する
+        /// </summary>
+        /// <param name="currentTimeSec">現在の時間（秒）</param>
+        /// <param name="durationSec">持続時間（秒）</param>
+        /// <param name="startAmplitude">開始時の振幅</param>
+        /// <param name="endAmplitude">終了時の振幅</param>
+        /// <param name="startFrequency">開始時の周波数（Hz）</param>
+        /// <param name="endFrequency">終了時の周波数（Hz）</param>
+        /// <param name="startDcOffset">開始時のDCオフセット</param>
+        /// <param name="endDcOffset">終了時のDCオフセット</param>
+        /// <param name="phase">位相（ラジアン）</param>
+        /// <returns>生成された三角波の値</returns>
+        public static double GenerateTriangleWave(
+            double currentTimeSec,
+            double durationSec,
+            double startAmplitude,
+            double endAmplitude,
+            double startFrequency,
+            double endFrequency,
+            double startDcOffset,
+            double endDcOffset,
+            double phase)
+        {
+            if (durationSec <= 0)
+                return 0;
+
+            // 経過率（0.0～1.0）を計算
+            double progressRatio = Math.Min(Math.Max(currentTimeSec / durationSec, 0.0), 1.0);
+
+            // 各パラメータを現在時刻に応じて線形補間
+            double currentAmplitude = startAmplitude + (endAmplitude - startAmplitude) * progressRatio;
+            double currentFrequency = startFrequency + (endFrequency - startFrequency) * progressRatio;
+            double currentDcOffset = startDcOffset + (endDcOffset - startDcOffset) * progressRatio;
+
+            // 位相を考慮した時間
+            double t = currentTimeSec + phase / (2 * Math.PI * currentFrequency);
+
+            // 三角波を生成
+            double triangleWave = 1 - Math.Abs((t * currentFrequency) % 1 - 0.5) * 4;
+
+            // 振幅とDCオフセットを適用
+            return currentAmplitude * triangleWave + currentDcOffset;
+        }
     }
 }
